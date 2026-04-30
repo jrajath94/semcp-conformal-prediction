@@ -76,13 +76,20 @@ def replace_table_block(tex: str, dataset: str, replacement_rows: List[str]) -> 
 
     grouped under \multicolumn{6}{c}{\textit{<dataset>}}.
     """
-    pattern_label = f"\\\\multicolumn\\{{6\\}}\\{{c\\}}\\{{\\\\textit\\{{{dataset}\\}}\\}}"
-    block_re = re.compile(
-        rf"({pattern_label} \\\\\n\\midrule\n)((?:.+\\\\\n){{{len(replacement_rows)}}})",
-        re.MULTILINE
+    # The placeholder block looks like:
+    #   \multicolumn{6}{c}{\textit{TriviaQA}} \\
+    #   \midrule
+    #   SemCP (ours)  & TODO\_NUM & ... \\
+    #   ConU          & TODO\_NUM & ... \\
+    #   ... (one row per method) ...
+    label = f"\\multicolumn{{6}}{{c}}{{\\textit{{{dataset}}}}}"
+    pattern = re.compile(
+        re.escape(label) + r" \\\\[ \t]*\n\\midrule[ \t]*\n"
+        + r"(?:[^\n]*\\\\[ \t]*\n){" + str(len(replacement_rows)) + r"}",
+        re.MULTILINE,
     )
-    new_block = "\n".join(replacement_rows) + "\n"
-    return block_re.sub(lambda m: m.group(1) + new_block, tex, count=1)
+    new_block = label + " \\\\\n\\midrule\n" + "\n".join(replacement_rows) + "\n"
+    return pattern.sub(new_block, tex, count=1)
 
 
 def main():
