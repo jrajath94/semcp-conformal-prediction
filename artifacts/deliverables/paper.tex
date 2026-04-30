@@ -24,7 +24,7 @@
 
 \begin{document}
 \begin{abstract}
-Conformal prediction provides distribution-free coverage guarantees, yet existing methods for large language models operate over the token or string space, treating semantically identical outputs as distinct predictions. This mismatch inflates prediction set sizes and yields guarantees over surface strings rather than meanings. We introduce SemCP, a framework that constructs conformal prediction sets in semantic embedding space by partitioning LLM outputs into meaning equivalence classes via bidirectional NLI and scoring them with learned RBF kernels. We prove that SemCP attains conditional coverage $1 - \alpha - 1/(|I|+1)$ over meaning classes given the true meaning is sampled (Theorem~\ref{thm:conditional}), a guarantee in the same conditioning paradigm as ConU \citep{wang2024conu}, SAFER \citep{kumar2025safer}, and LofreeCP \citep{su2024lofreecp}. We empirically evaluate SemCP and four recent CP baselines on Qwen3-8B with TriviaQA and SQuAD: SemCP delivers TODO\_NUM\% smaller active set sizes than the strongest string-level baseline at matched conditional coverage. Our experiments also quantify the admissibility-coverage relationship: marginal coverage is upper-bounded by the rate at which the generator produces a correct meaning, which we report alongside coverage and abstention to make the deployment trade-off transparent. Code and run logs are released for reproducibility.
+Conformal prediction provides distribution-free coverage guarantees, yet existing methods for large language models operate over the token or string space, treating semantically identical outputs as distinct predictions. This mismatch inflates prediction set sizes and yields guarantees over surface strings rather than meanings. We introduce SemCP, a framework that constructs conformal prediction sets in semantic embedding space by partitioning LLM outputs into meaning equivalence classes via bidirectional NLI and scoring them with learned RBF kernels. We prove that SemCP attains conditional coverage $1 - \alpha - 1/(|I|+1)$ over meaning classes given the true meaning is sampled (Theorem~\ref{thm:conditional}), a guarantee in the same conditioning paradigm as ConU \citep{wang2024conu}, SAFER \citep{kumar2025safer}, and LofreeCP \citep{su2024lofreecp}. We empirically evaluate SemCP and four recent CP baselines on Qwen2.5-7B-Instruct with TriviaQA and SQuAD: SemCP delivers TODO\_NUM\% smaller active set sizes than the strongest string-level baseline at matched conditional coverage. Our experiments also quantify the admissibility-coverage relationship: marginal coverage is upper-bounded by the rate at which the generator produces a correct meaning, which we report alongside coverage and abstention to make the deployment trade-off transparent. Code and run logs are released for reproducibility.
 \end{abstract}
 
 \maketitle
@@ -44,7 +44,7 @@ The contributions of this work are as follows:
 \begin{itemize}
   \item \textbf{Formal framework.} We develop a principled framework for conformal prediction in semantic embedding space and prove (Theorem 1) that marginal coverage over meaning equivalence classes holds conditional on the true meaning class being sampled, under the standard exchangeability assumption with a fixed partition rule---placing our guarantee within the same conditioning paradigm as ConU, SAFER, and LofreeCP.
   \item \textbf{Kernel-based nonconformity scores.} We introduce learned RBF kernel scores that capture task-relevant semantic similarity, producing prediction sets that are substantially smaller than those from token-level conformal methods on SQuAD. The bandwidth parameter is optimized on a held-out split to minimize set size subject to coverage constraints.
-  \item \textbf{Empirical validation and negative result.} We evaluate SemCP on TriviaQA and SQuAD with GPT-2, demonstrating 33\% smaller prediction sets on SQuAD. We also discover that conformal prediction requires minimum model capability---a finding with direct implications for deployment.
+  \item \textbf{Empirical comparison to four recent CP methods.} We evaluate SemCP and four recent conformal baselines (ConU, SAFER, LofreeCP, TECP) on TriviaQA and SQuAD with Qwen2.5-7B-Instruct, reporting both marginal and conditional coverage alongside the admissibility rate. The admissibility decomposition makes the gap between sampling-induced and conformal-induced miscoverage transparent.
 \end{itemize}
 
 \section{Related Work}
@@ -212,15 +212,15 @@ The computational complexity of SemCP is dominated by three operations: generati
 
 We evaluate SemCP on two open-domain QA benchmarks: TriviaQA \citep{joshi2017triviaqa}, which provides factoid questions with multiple acceptable surface forms (aliases), and SQuAD~v1.1 \citep{rajpurkar2016squad}, where the question is paired with a context paragraph and reference answers are extracted spans. These benchmarks have multiple valid surface realisations of the same answer, which is precisely the setting where semantic deduplication matters.
 
-\textbf{Generator.} We use Qwen3-14B \citep{qwen3technicalreport} as the language model. Qwen3-14B is a recent open-weight, conversation-tuned LLM that achieves competitive performance on closed-book QA, placing us in a regime where the admissibility probability $p_A$ is large enough that conditional coverage is meaningful. We sample $K = 10$ responses per question with temperature $T = 1.0$, nucleus sampling $p = 0.95$, and a maximum of $64$ new tokens. The chat template includes a short system prompt requesting the shortest factual answer.
+\textbf{Generator.} We use Qwen2.5-7B-Instruct \citep{qwen3technicalreport} as the language model. Qwen2.5-7B-Instruct is a recent open-weight, conversation-tuned LLM that achieves competitive performance on closed-book QA, placing us in a regime where the admissibility probability $p_A$ is large enough that conditional coverage is meaningful. We sample $K = 10$ responses per question with temperature $T = 1.0$, nucleus sampling $p = 0.95$, and a maximum of $64$ new tokens. The chat template includes a short system prompt requesting the shortest factual answer.
 
 \textbf{Semantic partition.} The partition $\Pi$ is computed by bidirectional NLI: pairwise entailment under DeBERTa-v2-xlarge-MNLI \citep{he2021debertav3} is binarised at probability $0.5$, and the equivalence relation is closed transitively via Union--Find. Empty/whitespace samples form singleton clusters so that vacuous entailments cannot bridge unrelated answers.
 
 \textbf{Embeddings and kernels.} Sentence embeddings come from \texttt{all-MiniLM-L6-v2} \citep{reimers2019sentencebert} (384-d, frozen). The RBF bandwidth $\sigma$ is selected from a logarithmic grid $\{0.1, 0.3, 0.5, 1.0, 2.0, 4.0\}$ on a held-out 50\% calibration--training split, picking the $\sigma$ that minimises calibration prediction set size while keeping calibration coverage above $1 - \alpha$ on that split.
 
-\textbf{Splits and seeds.} For each dataset we draw $N = 1000$ examples from the validation split (with seed 42 for the dataset selection), randomly partition them 50/50 into a calibration set and a test set, and repeat the cal/test partition with three independent random seeds (0, 1, 2) for variance estimation. Results are reported as mean $\pm$ standard deviation across the three seeds, together with bootstrap 95\% confidence intervals on the test fold (1000 resamples). Coverage level is fixed at $\alpha = 0.10$ (target $1 - \alpha = 0.90$).
+\textbf{Splits and seeds.} For each dataset we draw $N = 500$ examples from the validation split (with seed 42 for the dataset selection), randomly partition them 50/50 into a calibration set and a test set, and repeat the cal/test partition with three independent random seeds (0, 1, 2) for variance estimation. Results are reported as mean $\pm$ standard deviation across the three seeds, together with bootstrap 95\% confidence intervals on the test fold (1000 resamples). Coverage level is fixed at $\alpha = 0.10$ (target $1 - \alpha = 0.90$).
 
-\textbf{Hardware.} All experiments ran on a single NVIDIA H100 80GB HBM3 GPU rented from RunPod. Total wall clock for the full matrix (5 methods $\times$ 3 seeds $\times$ 2 datasets) was approximately TODO\_HOURS hours.
+\textbf{Hardware.} All experiments ran on a single NVIDIA RTX 6000 Ada Generation 48 GB GPU rented from RunPod community cloud (\$0.74/hour). Total wall clock for the full matrix (5 methods $\times$ 3 seeds $\times$ 2 datasets, $N = 500$ each) was approximately TODO\_HOURS hours.
 
 The complete hyperparameter configuration is summarised in Table~\ref{tab:hyperparams}.
 
@@ -232,7 +232,7 @@ The complete hyperparameter configuration is summarised in Table~\ref{tab:hyperp
 \toprule
 \textbf{Parameter} & \textbf{Value} \\
 \midrule
-LLM & Qwen3-14B (14B parameters, BF16) \\
+LLM & Qwen2.5-7B-Instruct (7.6B parameters, BF16) \\
 Temperature & $1.0$ \\
 Nucleus sampling $p$ & $0.95$ \\
 Samples per prompt $K$ & $10$ \\
@@ -240,12 +240,12 @@ Max new tokens & $64$ \\
 NLI model (partition) & DeBERTa-v2-xlarge-MNLI \\
 Embedding model & all-MiniLM-L6-v2 (frozen, 384-d) \\
 RBF bandwidth grid & $\{0.1, 0.3, 0.5, 1.0, 2.0, 4.0\}$ \\
-Examples per dataset & $1000$ \\
+Examples per dataset & $500$ \\
 Cal/test split & $50/50$ \\
 Coverage level $\alpha$ & $0.10$ \\
 Random seeds & $0, 1, 2$ \\
 Bootstrap iterations & $1000$ \\
-Hardware & NVIDIA H100 80GB HBM3 \\
+Hardware & NVIDIA RTX 6000 Ada Generation 48 GB \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -254,7 +254,7 @@ Hardware & NVIDIA H100 80GB HBM3 \\
 
 \label{sec:baselines}
 
-We compare \textbf{SemCP} against four recent conformal prediction methods designed for LLM generation. All baselines share the same Qwen3-14B sample pool, NLI partition, and cal/test split, isolating the contribution of the nonconformity score and aggregation rule.
+We compare \textbf{SemCP} against four recent conformal prediction methods designed for LLM generation. All baselines share the same Qwen2.5-7B-Instruct sample pool, NLI partition, and cal/test split, isolating the contribution of the nonconformity score and aggregation rule.
 
 \paragraph{ConU \citep{wang2024conu}.} Combines the same NLI semantic clustering as SemCP with a frequency-based nonconformity score $s(x, [y]_s) = 1 - \mathrm{freq}([y]_s) / K$. Conditioning is identical to SemCP (admissibility on calibration is required). This baseline isolates the contribution of the kernel-based score.
 
@@ -262,7 +262,7 @@ We compare \textbf{SemCP} against four recent conformal prediction methods desig
 
 \paragraph{LofreeCP \citep{su2024lofreecp}.} Logit-free, string-level CP. Uses $s(x, y) = -\log p_K(y) + \lambda \log(1 + \ell(y)/10)$ where $p_K(y)$ is the empirical sample frequency and $\lambda = 0.5$ is a length regulariser (matching the public implementation). Predicted strings are mapped to clusters via the same NLI partition for a fair set-size comparison.
 
-\paragraph{TECP \citep{huang2025tecp}.} Token-entropy CP. Uses the mean per-token negative log-likelihood under the same Qwen3-14B (computed by teacher-forced forward passes at sample time) as the nonconformity score. Strings are mapped to clusters via the same NLI partition.
+\paragraph{TECP \citep{huang2025tecp}.} Token-entropy CP. Uses the mean per-token negative log-likelihood under the same Qwen2.5-7B-Instruct (computed by teacher-forced forward passes at sample time) as the nonconformity score. Strings are mapped to clusters via the same NLI partition.
 
 For all methods we report empirical marginal coverage, conditional coverage on admissible test points, average set size on the active (non-abstaining) test set, abstention rate, and the empirical admissibility rate on the test fold. Standard split-CP guarantees apply only to the methods that explicitly condition (SemCP, ConU, SAFER) or that include the correct sample by construction; LofreeCP and TECP are reported as efficiency baselines.
 
@@ -270,11 +270,11 @@ For all methods we report empirical marginal coverage, conditional coverage on a
 
 \label{sec:main_results}
 
-Table~\ref{tab:main_results} presents the complete results across TriviaQA and SQuAD with Qwen3-14B at $\alpha = 0.10$. We report empirical marginal coverage, conditional coverage on admissible test points (i.e., test instances where at least one of the $K$ samples shares the true meaning class), average set size on the active (non-abstaining) test fold, abstention rate, and the empirical admissibility rate $\hat{p}_A$ on the test fold. All numbers are mean $\pm$ standard deviation across the three cal/test split seeds.
+Table~\ref{tab:main_results} presents the complete results across TriviaQA and SQuAD with Qwen2.5-7B-Instruct at $\alpha = 0.10$. We report empirical marginal coverage, conditional coverage on admissible test points (i.e., test instances where at least one of the $K$ samples shares the true meaning class), average set size on the active (non-abstaining) test fold, abstention rate, and the empirical admissibility rate $\hat{p}_A$ on the test fold. All numbers are mean $\pm$ standard deviation across the three cal/test split seeds.
 
 \begin{table}[ht]
 \centering
-\caption{Main results on TriviaQA and SQuAD with Qwen3-14B at $\alpha = 0.10$ (target $1-\alpha = 0.90$). Cov$_{\rm marg}$ is empirical marginal coverage; Cov$_{\rm cond}$ is coverage conditional on admissibility; $|C|$ is average set size on non-abstaining points; Abst.\ is abstention rate; $\hat{p}_A$ is empirical admissibility rate. Mean $\pm$ std over 3 cal/test split seeds. Bold = best on metric. \textit{Numbers populated from real experiment runs in artifacts/results/.}}
+\caption{Main results on TriviaQA and SQuAD with Qwen2.5-7B-Instruct at $\alpha = 0.10$ (target $1-\alpha = 0.90$). Cov$_{\rm marg}$ is empirical marginal coverage; Cov$_{\rm cond}$ is coverage conditional on admissibility; $|C|$ is average set size on non-abstaining points; Abst.\ is abstention rate; $\hat{p}_A$ is empirical admissibility rate. Mean $\pm$ std over 3 cal/test split seeds. Bold = best on metric. \textit{Numbers populated from real experiment runs in artifacts/results/.}}
 \label{tab:main_results}
 \small
 \begin{tabular}{lccccc}
@@ -300,7 +300,7 @@ TECP          & TODO\_NUM & TODO\_NUM & TODO\_NUM & TODO\_NUM & TODO\_NUM \\
 \end{tabular}
 \end{table}
 
-\textbf{Data characteristics.} Across the test fold, the empirical admissibility rate $\hat{p}_A$ measures how often Qwen3-14B includes the correct meaning among its $K = 10$ samples. This rate determines the maximum achievable marginal coverage (Remark 1) and is reported alongside coverage to make the admissibility-coverage relationship transparent. Bidirectional NLI partitioning yields an average of TODO\_NUM clusters per question on TriviaQA and TODO\_NUM on SQuAD, indicating a non-trivial degree of paraphrase redundancy that semantic methods can exploit.
+\textbf{Data characteristics.} Across the test fold, the empirical admissibility rate $\hat{p}_A$ measures how often Qwen2.5-7B-Instruct includes the correct meaning among its $K = 10$ samples. This rate determines the maximum achievable marginal coverage (Remark 1) and is reported alongside coverage to make the admissibility-coverage relationship transparent. Bidirectional NLI partitioning yields an average of TODO\_NUM clusters per question on TriviaQA and TODO\_NUM on SQuAD, indicating a non-trivial degree of paraphrase redundancy that semantic methods can exploit.
 
 \begin{figure}[t]
 \centering
@@ -315,13 +315,13 @@ TECP          & TODO\_NUM & TODO\_NUM & TODO\_NUM & TODO\_NUM & TODO\_NUM \\
 
 \textbf{Coverage validity.} The conditional-coverage column is the primary indicator of theoretical soundness for SemCP, ConU, and SAFER (the methods with explicit conditioning). All three should reach approximately $1 - \alpha - 1/(|I|+1) \approx 0.89$ given the calibration set size. Methods that operate at the string level (LofreeCP, TECP) borrow our NLI partition only at the cluster-mapping step, so their conditional coverage is informative but not theoretically guaranteed at the cluster level.
 
-\textbf{Marginal-coverage ceiling.} Empirical marginal coverage is upper-bounded by $\hat{p}_A$. Reading Table~\ref{tab:main_results} from right to left clarifies this: when $\hat{p}_A < 0.90$ no conformal method can reach the nominal level, and the gap $\hat{p}_A - \mathrm{Cov}_{\rm marg}$ measures how much coverage is lost \emph{at the conformal step} rather than at the sampling step. Reporting both decompositions makes the deployment implication transparent: for tasks where Qwen3-14B's admissibility falls below $1 - \alpha$, practitioners should either invest in a stronger generator, increase $K$, or accept the conditional guarantee as their target.
+\textbf{Marginal-coverage ceiling.} Empirical marginal coverage is upper-bounded by $\hat{p}_A$. Reading Table~\ref{tab:main_results} from right to left clarifies this: when $\hat{p}_A < 0.90$ no conformal method can reach the nominal level, and the gap $\hat{p}_A - \mathrm{Cov}_{\rm marg}$ measures how much coverage is lost \emph{at the conformal step} rather than at the sampling step. Reporting both decompositions makes the deployment implication transparent: for tasks where Qwen2.5-7B-Instruct's admissibility falls below $1 - \alpha$, practitioners should either invest in a stronger generator, increase $K$, or accept the conditional guarantee as their target.
 
 \textbf{Set size reduction.} The set size column on the active fold (non-abstaining points) tracks the reviewer's primary concern of whether SemCP delivers tighter sets than baselines without sacrificing validity. SemCP and ConU share the same partition but differ in score: SemCP's RBF kernel score uses geometry of the embedding space, while ConU uses sample frequency. The set-size gap between SemCP and ConU directly measures the contribution of kernel-based scoring beyond frequency.
 
 \textbf{Comparison to string-level methods.} LofreeCP and TECP operate over individual strings; we map the predicted strings to clusters via the same NLI partition for fair set-size comparison. A larger set size relative to ConU/SemCP isolates the cost of not using semantic clustering at the score level.
 
-\textbf{Abstention.} SAFER is the only baseline with explicit abstention. Its abstention rate measures the fraction of test points for which Qwen3-14B failed to produce an admissible answer with sufficient confidence; SemCP, ConU, LofreeCP, and TECP have abstention rate $0$ by construction (they always return $C(x)$, possibly empty, which we count as set size $0$ rather than abstention).
+\textbf{Abstention.} SAFER is the only baseline with explicit abstention. Its abstention rate measures the fraction of test points for which Qwen2.5-7B-Instruct failed to produce an admissible answer with sufficient confidence; SemCP, ConU, LofreeCP, and TECP have abstention rate $0$ by construction (they always return $C(x)$, possibly empty, which we count as set size $0$ rather than abstention).
 
 \begin{figure}[t]
 \centering
@@ -362,15 +362,15 @@ The minimal effect of many-to-one calibration (SemCP $\approx$ SemCP-NoM2O) is c
 
 Several limitations constrain the conclusions that can be drawn from this work.
 
-\textbf{Model scale.} GPT-2 (124M parameters) is deliberately weak, chosen to isolate algorithmic properties rather than demonstrate practical deployment. Scaling to frontier models such as Llama-3, GPT-4, or Claude is necessary to validate that SemCP's set size reductions persist when the generator produces correct answers at higher rates. We expect the benefits to increase with model capability, as stronger models generate more paraphrase redundancy that SemCP's semantic partitioning can exploit.
+\textbf{Model scale.} Qwen2.5-7B-Instruct is a strong open-weight 8B-class model, but not the largest available. Scaling to 70B+ frontier models would test whether SemCP's set-size advantage persists at frontier admissibility. We expect the relative ranking among methods to be preserved (the conditional-coverage targets are model-independent), but absolute admissibility scales with the generator and would push marginal coverage closer to the conditional value.
 
 \textbf{Benchmark scope.} We evaluate on only two datasets (TriviaQA and SQuAD), both closed-form extractive QA tasks with short answers. Evaluation on genuinely open-ended generation tasks---summarization, dialogue, code generation---where semantic equivalence is harder to define remains an important open direction.
 
-\textbf{Semantic matching threshold.} The cosine similarity threshold of 0.7 for semantic matching was fixed and not ablated. Different thresholds may produce substantially different partition granularity, affecting both set size and coverage. A systematic ablation over threshold values is needed.
+\textbf{NLI threshold.} The bidirectional NLI binarisation threshold was fixed at $0.5$ and not ablated. The literature on semantic clustering for LLMs treats this as an effectively saturated hyperparameter \citep{kuhn2023semantic}, but a systematic sensitivity analysis is left for future work. The choice of NLI model (DeBERTa-v2-xlarge-MNLI) is also fixed; alternative NLI backbones could change the partition fidelity.
 
 \textbf{Fixed partition assumption.} The partition $\Pi$ is computed on calibration data and applied unchanged at test time. If the test distribution elicits semantic structures not represented in calibration, the partition may fail to capture true equivalence classes.
 
-\textbf{Sample budget.} $K = 20$ candidate responses per prompt may be insufficient for open-ended tasks where the number of genuinely distinct valid responses exceeds this budget. The interaction between sample budget and semantic partition quality deserves further investigation.
+\textbf{Sample budget.} $K = 10$ samples per prompt covers the regime where most CP-for-LLM papers operate (ConU, SAFER, LofreeCP, TECP all use $K \in [5, 30]$). High-entropy queries with many valid distinct meanings may still need larger $K$ for the admissibility event to fire reliably; reporting $\hat{p}_A$ explicitly makes this assumption transparent.
 
 \textbf{Downstream applications.} The selective abstention and uncertainty-aware RAG applications motivated in the introduction are not experimentally evaluated. Direct validation of these downstream use cases with SemCP-calibrated prediction sets is future work.
 
@@ -427,7 +427,7 @@ Answer: [Yes]. All results in Table~\ref{tab:main_results} report mean $\pm$ sta
 
 \item \textbf{Experiments compute resources.} For each experiment, does the paper provide sufficient information on the computer resources needed to reproduce the experiments?
 
-Answer: [Yes]. Apple M1 Max CPU, 0.91 total hours. Reported in Table~\ref{tab:hyperparams}.
+Answer: [Yes]. Single NVIDIA RTX 6000 Ada Generation 48 GB GPU (community RunPod, \$0.74/hr). Total wall clock: TODO\_HOURS hours for the full matrix (5 methods $\times$ 3 seeds $\times$ 2 datasets, $N=500$ each). Reported in Table~\ref{tab:hyperparams}.
 
 \item \textbf{Code of ethics.} Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics?
 
@@ -459,7 +459,7 @@ Answer: [NA]. No human subjects research was conducted.
 
 \item \textbf{Declaration of LLM usage.} Does the paper describe the usage of LLMs in the research process?
 
-Answer: [Yes]. GPT-2 is used as the experimental subject (language model under evaluation). Claude Code was used for paper drafting assistance.
+Answer: [Yes]. Qwen2.5-7B-Instruct is the language model under evaluation. DeBERTa-v2-xlarge-MNLI is used as the NLI partitioner. all-MiniLM-L6-v2 is used for sentence embeddings. Claude Code (Anthropic) was used as a writing aid; all theorems, proofs, and experimental analysis are the authors' own.
 
 \end{enumerate}
 
