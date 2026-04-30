@@ -167,31 +167,29 @@ where $p_A = \mathbb{P}(A_{n+1})$ is the admissibility probability. Marginal cov
 
 \textbf{Observation 1 (Set Size Reduction).} When the semantic partition $\Pi$ is non-trivial --- that is, at least one equivalence class contains more than one string --- the expected size of the semantic prediction set is strictly smaller than the string-level prediction set at the same coverage level: $\mathbb{E}[|C_{\text{sem}}|] < \mathbb{E}[|C_{\text{tok}}|]$. This follows directly from the definition: each meaning class in $C_{\text{sem}}$ absorbs multiple strings that would individually occupy slots in $C_{\text{tok}}$. The reduction factor depends on the degree of paraphrase redundancy in the model's output distribution --- higher redundancy yields larger savings.
 
-\textbf{Algorithm 1: SemCP}
+\begin{algorithm}[t]
+\caption{SemCP --- Semantic Conformal Prediction}
+\label{alg:semcp}
+\begin{algorithmic}[1]
+\REQUIRE Calibration set $\mathcal{D}_{\text{cal}} = \{(x_i, y_i)\}_{i=1}^n$, test prompt $x^*$, LLM $\mathcal{M}$, NLI model $f_{\text{NLI}}$, embedding $\varphi$, coverage level $\alpha$
+\STATE \textbf{// Calibration}
+\FOR{$i = 1, \ldots, n$}
+  \STATE Sample $\{y_i^{(1)}, \ldots, y_i^{(K)}\} \sim \mathcal{M}(\cdot \mid x_i)$
+  \STATE Partition samples into clusters via bidirectional NLI under $f_{\text{NLI}}$ (Union--Find)
+  \IF{any sample matches a reference of $y_i$}
+    \STATE $\tilde{s}_i \gets 1 - \max_{c' \neq c_i^\star} \kappa_\sigma(\bar\varphi_{c_i^\star}, \bar\varphi_{c'})$ \quad\COMMENT{lifted score on the correct cluster}
+  \ELSE
+    \STATE $\tilde{s}_i \gets +\infty$ \quad\COMMENT{drop from calibration}
+  \ENDIF
+\ENDFOR
+\STATE $\hat{q} \gets \mathrm{Quantile}\!\left(\frac{\lceil(1 - \alpha)(|I|+1)\rceil}{|I|},\; \{\tilde{s}_i : i \in I\}\right)$ where $I = \{i : \tilde{s}_i < \infty\}$
 
-Input: Calibration set D\_cal = \{(x\_i, y\_i)\}\_\{i=1\}\textasciicircum{}n, test prompt x*,
-       LLM M, NLI model f\_NLI, embedding function $\phi$, coverage level $\alpha$
-Output: Semantic prediction set C(x*)
-
-// Calibration phase
-\begin{enumerate}
-  \item For each (x\_i, y\_i) in D\_cal:
-  \item Sample \{y\_i\textasciicircum{}1, ..., y\_i\textasciicircum{}K\} \textasciitilde{} M(x\_i)
-  \item Compute equivalence classes via bidirectional entailment using f\_NLI
-  \item Compute $\mu$\_\{x\_i\} = (1/K) $\Sigma$\_k $\phi$(y\_i\textasciicircum{}k)
-  \item Compute lifted score: s\\textasciitilde{}\{\}\_i = min\_\{y' $\in$ [y\_i]\_s\} (1 - $\kappa$\_$\theta$($\phi$(y'), $\mu$\_\{x\_i\}))
-  \item Compute q\\textasciicircum{}\{\} = Quantile($\lceil$(1-$\alpha$)(n+1)$\rceil$/n, \{s\\textasciitilde{}\{\}\_1, ..., s\\textasciitilde{}\{\}\_n\})
-\end{enumerate}
-
-// Prediction phase
-\begin{enumerate}
-  \item Sample \{y\textit{\_1, ..., y}\_K\} \textasciitilde{} M(x*)
-  \item Partition into equivalence classes \{[y\textit{]\_s\textasciicircum{}1, ..., [y}]\_s\textasciicircum{}m\} via f\_NLI
-  \item Compute $\mu$\_\{x\textit{\} = (1/K) $\Sigma$\_k $\phi$(y}\_k)
-  \item For each class [y*]\_s\textasciicircum{}j:
-  \item Compute s\\textasciitilde{}\{\}\_j = min\_\{y' $\in$ [y\textit{]\_s\textasciicircum{}j\} (1 - $\kappa$\_$\theta$($\phi$(y'), $\mu$\_\{x}\}))
-  \item Return C(x\textit{) = \{[y}]\_s\textasciicircum{}j : s\\textasciitilde{}\{\}\_j $\leq$ q\\textasciicircum{}\{\}\}
-\end{enumerate}
+\STATE \textbf{// Prediction}
+\STATE Sample $\{y_*^{(1)}, \ldots, y_*^{(K)}\} \sim \mathcal{M}(\cdot \mid x^*)$, partition into clusters $c_1, \ldots, c_m$
+\STATE Compute $\tilde{s}(x^*, c_j)$ for each cluster
+\RETURN $C(x^*) = \{c_j : \tilde{s}(x^*, c_j) \le \hat{q}\}$
+\end{algorithmic}
+\end{algorithm}
 
 The computational complexity of SemCP is dominated by three operations: generating $K$ samples from the LLM ($O(K \cdot L)$ where $L$ is the average response length), computing $O(K^2)$ pairwise NLI judgments for partitioning, and $O(K \cdot d)$ embedding computations for scoring.
 
