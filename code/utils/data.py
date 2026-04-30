@@ -31,29 +31,37 @@ class QAExample:
 
 
 def load_triviaqa(n: int = 1500, seed: int = 42) -> List[QAExample]:
-    ds = load_dataset("trivia_qa", "rc.nocontext", split="validation")
+    # Use mandarjoshi/trivia_qa (parquet on HF Hub) to bypass the legacy
+    # dataset script that current `datasets` 3.x can't parse.
+    ds = load_dataset("mandarjoshi/trivia_qa", "rc.nocontext", split="validation")
     rng = random.Random(seed)
     idxs = rng.sample(range(len(ds)), min(n, len(ds)))
     out = []
     for i in idxs:
         row = ds[i]
-        answers = list(set(
-            [row["answer"]["value"]] + row["answer"].get("aliases", [])
-        ))
-        answers = [a for a in answers if a and len(a.strip()) > 0]
+        ans = row["answer"]
+        candidates = []
+        if isinstance(ans, dict):
+            candidates.append(ans.get("value", ""))
+            candidates.extend(ans.get("aliases", []) or [])
+            candidates.extend(ans.get("normalized_aliases", []) or [])
+        else:
+            candidates.append(str(ans))
+        answers = [a.strip() for a in candidates if a and a.strip()]
         if not answers:
             continue
         out.append(QAExample(
-            id=row["question_id"],
+            id=row.get("question_id", str(i)),
             question=row["question"],
-            answers=answers,
+            answers=list(dict.fromkeys(answers)),
             dataset="triviaqa",
         ))
     return out
 
 
 def load_squad(n: int = 1500, seed: int = 42) -> List[QAExample]:
-    ds = load_dataset("squad", split="validation")
+    # rajpurkar/squad is the maintained parquet version on HF Hub.
+    ds = load_dataset("rajpurkar/squad", split="validation")
     rng = random.Random(seed)
     idxs = rng.sample(range(len(ds)), min(n, len(ds)))
     out = []
