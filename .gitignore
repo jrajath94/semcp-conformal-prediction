@@ -1,0 +1,143 @@
+# =============================================================================
+# SemCP — strict gitignore
+# Goal: keep the repo small, reproducible, and free of secrets / generated junk.
+# =============================================================================
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- Virtual envs ------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# --- OS / editor noise --------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
+
+# --- Secrets (never commit) --------------------------------------------------
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.crt
+*_token.json
+*_credentials.json
+*.minimax_key
+.huggingface/
+.netrc
+config.local.*
+secrets/
+
+# --- LaTeX intermediate files ------------------------------------------------
+# (We commit the .tex source and the final .pdf only.)
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.toc
+*.out
+*.bbl
+*.blg
+*.lof
+*.lot
+*.brf
+*.idx
+*.ind
+*.ilg
+*.glo
+*.gls
+*.acr
+*.alg
+*.acn
+*.run.xml
+*-blx.bib
+texput.log
+
+# --- Large model & dataset artifacts ------------------------------------------
+# Model weights, tokenizer caches, sample pools — too big for git, recreated by code.
+models/
+checkpoints/
+*.bin
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.ckpt
+*.h5
+hf_cache/
+.cache/
+data/raw/
+data/cache/
+*.npz
+*.npy
+*.pkl
+*.parquet
+
+# --- Generated experiment artifacts (kept out by default) --------------------
+# Summary JSONs that document final results ARE tracked.
+# Per-seed raw predictions and intermediate pool dumps are NOT.
+artifacts/stage-*/
+artifacts/evolution/
+artifacts/experiment_memory/
+artifacts/hitl/
+artifacts/checkpoint.json
+artifacts/heartbeat.json
+artifacts/pipeline_summary.json
+artifacts/deliverables/charts/experiment_results.json
+results/raw/
+**/raw_*.json
+logs/
+*.log
+
+# --- Notebooks (allow but skip checkpoints) ----------------------------------
+.ipynb_checkpoints/
+
+# --- Pipeline / scratch directories ------------------------------------------
+__pycache__/
+.scratch/
+scratch/
+tmp/
+out/
+runs/
+
+# --- Specific files we know about --------------------------------------------
+ai_reviewer.py.minimax.cache
+paperreview_sempc          # original peer review (kept out — internal)
+RETROSPECTIVE.md           # internal pipeline retrospective
+experiment_output.log
+
+# --- Allow-list (un-ignore essentials) ---------------------------------------
+!artifacts/deliverables/paper.pdf
+!artifacts/deliverables/paper.tex
+!artifacts/deliverables/charts/*.pdf
+!artifacts/deliverables/charts/*.png
+!artifacts/deliverables/charts/framework_diagram_prompt.md

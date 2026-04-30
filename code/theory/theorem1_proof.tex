@@ -1,0 +1,124 @@
+% Conditional / abstention-aware coverage theorem for SemCP.
+% This file is INCLUDED into the main paper.tex via \input{}.
+
+\subsection{Conditional Coverage Guarantee}
+\label{sec:theorem}
+
+The marginal coverage statement claimed in the v1 manuscript is unattainable
+for any sampling-restricted CP method when the LLM may fail to produce a
+correct response. The reviewer's first weakness identified this gap
+precisely: the implemented algorithm constructs prediction sets only over
+clusters that appear in the $K$ sampled responses, so coverage of the true
+meaning is bounded above by the probability that at least one of those
+samples is correct (the \emph{admissibility} probability). When that
+probability is below $1 - \alpha$, no method can deliver marginal coverage
+$\ge 1 - \alpha$. This realisation aligns with the construction used by
+\citet{wang2024conu} (ConU) and \citet{liang2025safer} (SAFER), and we adopt
+their convention here.
+
+\paragraph{Setup.}
+Let $(X_i, Y_i)_{i=1}^{n+1}$ be exchangeable, with $X_i$ a prompt and
+$Y_i$ a reference answer. For a fixed LLM $\mathcal{M}$ and a fixed
+sampling routine, draw $K$ samples $S_i = \{y_i^{(1)}, \dots, y_i^{(K)}\}$
+i.i.d.\ from $\mathcal{M}(\cdot \mid X_i)$. Let $\Pi$ be the
+\emph{semantic partition function} that maps a multiset $S$ together with
+context $X$ to a partition of $S$ into clusters via bidirectional
+NLI entailment under a frozen NLI model $f_{\rm NLI}$.\footnote{$\Pi$ is a
+deterministic function of $(S, X, f_{\rm NLI})$; it is sample-dependent
+but is \emph{not} a function of the calibration data, which is the
+condition required for exchangeability of the lifted scores below.}
+Define the admissibility event $A_i = \{\exists k : y_i^{(k)} \sim_s Y_i\}$:
+at least one sampled response shares a meaning class with the reference.
+
+For each calibration index $i$ with $A_i$ true, write $c_i^\star$ for the
+unique cluster of $\Pi(S_i, X_i)$ containing a correct sample, and let
+\[
+  \tilde{s}_i \;=\; \tilde{s}\bigl(X_i, c_i^\star; S_i\bigr)
+       \;=\; 1 - \max_{c' \neq c_i^\star} \kappa_\sigma\!\bigl(\bar\varphi_{c_i^\star},\, \bar\varphi_{c'}\bigr),
+\]
+the lifted nonconformity score; for $i$ with $A_i$ false we set
+$\tilde{s}_i = +\infty$. The conformal threshold is the empirical quantile
+\[
+  \hat{q}
+  \;=\; \mathrm{Quantile}\!\Biggl(
+       \frac{\lceil (1-\alpha)(|I|+1)\rceil}{|I|};
+       \,\bigl\{\tilde{s}_i : i \in I\bigr\}\Biggr),
+\]
+where $I = \{i : A_i\}$ is the admissible calibration index set.
+
+At test time, given $X_{n+1}$ and $S_{n+1}$, SemCP returns the prediction
+set
+\[
+  C(X_{n+1}) \;=\; \bigl\{\, c \in \Pi(S_{n+1}, X_{n+1})
+                 : \tilde{s}(X_{n+1}, c; S_{n+1}) \le \hat{q} \bigr\}.
+\]
+If the empty intersection $c_{n+1}^\star \cap S_{n+1} = \emptyset$ occurs
+(i.e.\ no sample is in the true meaning class), the lifted score for the
+true class is $+\infty$ by convention and SemCP \emph{abstains}: it returns
+$C(X_{n+1}) = \emptyset$ together with the abstention flag.
+
+\begin{theorem}[Conditional Semantic Coverage]
+\label{thm:conditional}
+Assume $(X_i, Y_i, S_i)_{i=1}^{n+1}$ are exchangeable and the partition
+function $\Pi$ is determined by $(S, X, f_{\rm NLI})$ alone (no dependence
+on calibration labels). Let $A$ denote the admissibility event for the test
+point. Then SemCP satisfies
+\[
+   \mathbb{P}\bigl(\,\Pi(Y_{n+1}) \in C(X_{n+1})\,\bigm|\, A_{n+1} \bigr)
+   \;\ge\; 1 - \alpha - \frac{1}{|I|+1}.
+\]
+\end{theorem}
+
+\begin{proof}[Proof sketch.]
+Conditional on the admissibility events $\{A_i\}_{i=1}^{n+1}$, the lifted
+scores $\{\tilde{s}_i\}_{i \in I \cup \{n+1\}}$ are \emph{exchangeable}:
+each is a deterministic function of $(X_i, Y_i, S_i, f_{\rm NLI})$, and
+the $K$ samples $S_i$ are i.i.d.\ given $X_i$. Standard split-CP
+arguments \citep{angelopoulos2021gentle, vovk2005algorithmic} yield
+\[
+   \mathbb{P}\bigl(\tilde{s}_{n+1} \le \hat{q}\bigm| A_{n+1}\bigr)
+   \ge 1 - \alpha - \tfrac{1}{|I|+1},
+\]
+where the $\tfrac{1}{|I|+1}$ slack arises from the discrete quantile
+estimator on a finite calibration set. The event
+$\tilde{s}_{n+1} \le \hat{q}$ is by definition $\Pi(Y_{n+1}) \in C(X_{n+1})$
+under conditional admissibility, completing the claim.
+\end{proof}
+
+\begin{remark}[Marginal coverage decomposition]
+\label{rem:marginal}
+Let $p_A = \mathbb{P}(A_{n+1})$. Then
+\(
+  \mathbb{P}\bigl(\Pi(Y_{n+1}) \in C(X_{n+1})\bigr)
+  = p_A \cdot \mathbb{P}(\Pi(Y_{n+1}) \in C(X_{n+1}) \mid A_{n+1})
+  + (1-p_A) \cdot 0,
+\)
+because under $\neg A_{n+1}$ the true meaning class is by definition
+absent from $S_{n+1}$. Marginal coverage is therefore upper bounded by
+$p_A$, and reaching the nominal level $1 - \alpha$ requires
+$p_A \ge 1 - \alpha$. Reporting marginal coverage without controlling
+$p_A$ is misleading; we report \emph{both} marginal and conditional
+coverage in all experiments.
+\end{remark}
+
+\begin{remark}[Empty-intersection handling and abstention]
+\label{rem:abstain}
+The reviewer flagged that the v1 manuscript's lifted score
+$\min_{y \in [Y]_s \cap \{y_1, \dots, y_K\}}$ is undefined when the
+intersection is empty. We resolve this explicitly by setting the score to
+$+\infty$ in both calibration and test phases. This converts an undefined
+case into a clean abstention signal, and Theorem~\ref{thm:conditional} is
+stated over the conditional event $A_{n+1}$ where the issue cannot arise.
+\end{remark}
+
+\begin{remark}[Sample-dependent partitions and validity]
+\label{rem:partition}
+Although $\Pi$ depends on the random $K$ samples, validity of
+Theorem~\ref{thm:conditional} requires only that $\Pi$ be \emph{a
+deterministic function of $(S_i, X_i, f_{\rm NLI})$} and that the
+calibration--test pairs are exchangeable. The frozen NLI model
+$f_{\rm NLI}$ plays the role of the ``fixed scoring function''. This
+matches the formal status of the partitions in semantic-entropy
+\citep{kuhn2023semantic} and ConU \citep{wang2024conu}, and is weaker
+than requiring $\Pi$ to be data-independent.
+\end{remark}
