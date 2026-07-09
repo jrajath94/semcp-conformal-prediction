@@ -1,6 +1,6 @@
 # SemCP: Conformal Prediction over Meaning Classes for Open-Ended LLM Generation
 
-> NeurIPS 2026 submission · Conformal prediction lifted from token / string space into the **quotient space of meanings**.
+> Independent Research Manuscript · Conformal prediction lifted from token / string space into the **quotient space of meanings**.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Paper](https://img.shields.io/badge/paper-PDF-red.svg)](artifacts/deliverables/paper.pdf)
@@ -198,11 +198,11 @@ These are stated explicitly in the paper (Section 7) and are the natural future-
 If you use SemCP, please cite the paper:
 
 ```bibtex
-@inproceedings{semcp2026,
+@misc{semcp2026,
   title  = {SemCP: Coverage Guarantees Over Meanings, Not Strings},
   author = {Anonymous},
-  booktitle = {Submitted to NeurIPS 2026},
-  year   = {2026}
+  year   = {2026},
+  note   = {Independent research manuscript}
 }
 ```
 
