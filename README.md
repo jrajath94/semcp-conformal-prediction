@@ -21,7 +21,7 @@ The conditioning matches the convention used by recent CP-for-LLM methods (ConU,
 
 ---
 
-## Key results (Qwen3-8B, TriviaQA + SQuAD, $N=500$/dataset, $\alpha=0.10$, 3 seeds)
+## Key results (Qwen2.5-7B-Instruct, TriviaQA + SQuAD, $N=500$/dataset, $\alpha=0.10$, 3 seeds)
 
 See `artifacts/deliverables/paper.pdf` Table 2 for the full table including bootstrap CIs. Headline:
 
@@ -33,7 +33,7 @@ See `artifacts/deliverables/paper.pdf` Table 2 for the full table including boot
 | LofreeCP | … | … | (no theory at cluster level) |
 | TECP | … | … | (no theory at cluster level) |
 
-Numbers in the table get filled in by `scripts/inject_results.py` once `code/run_full.sh` finishes; see "Reproducing" below. The committed PDF reflects the most recent run.
+Numbers in the table get filled in by `code/experiments/inject_results.py` once `code/run_full.sh` finishes; see "Reproducing" below. The committed PDF reflects the most recent run.
 
 ---
 
@@ -86,7 +86,7 @@ Any single GPU with ≥ 24 GB VRAM. Tested on:
 - NVIDIA RTX 6000 Ada Generation (48 GB) — community RunPod, ~$0.74/hr
 - NVIDIA H100 80 GB HBM3 (faster, more expensive)
 
-Model weights downloaded at runtime (~16 GB for Qwen3-8B).
+Model weights downloaded at runtime (~16 GB for Qwen2.5-7B-Instruct).
 
 ### 2. Environment
 
@@ -103,7 +103,7 @@ pip install transformers==4.45.2 sentence-transformers==3.1.1 \
 ### 3. Authentication
 
 You only need an HF token if you want to swap to a gated model (e.g. Llama-3.1).
-Qwen3-8B is open-access:
+Qwen2.5-7B-Instruct is open-access:
 
 ```bash
 export HF_TOKEN=hf_xxx       # only needed for gated models
@@ -117,7 +117,7 @@ chmod +x run_full.sh
 ./run_full.sh
 ```
 
-Wall clock on RTX 6000 Ada (Qwen3-8B, $N=500$, $K=10$, both datasets):
+Wall clock on RTX 6000 Ada (Qwen2.5-7B-Instruct, $N=500$, $K=10$, both datasets):
 
 | Stage | TriviaQA | SQuAD |
 |---|---|---|
@@ -142,7 +142,7 @@ pdflatex paper.tex && bibtex paper && pdflatex paper.tex && pdflatex paper.tex
 ## Method at a glance
 
 ```
-prompt x ──► Qwen3-8B ──► K samples {y_1, …, y_K}
+prompt x ──► Qwen2.5-7B-Instruct ──► K samples {y_1, …, y_K}
                               │
                               ▼
                   bidirectional NLI partition Π
@@ -184,7 +184,7 @@ The reviewer-flagged gap in the v1 manuscript (theorem promised marginal coverag
 
 ## Honest limitations
 
-1. **Single open model**: Qwen3-8B is a strong open-weight 8B model but not the strongest available. We expect the set-size ranking to be largely model-independent, but absolute admissibility scales with model strength.
+1. **Single open model**: Qwen2.5-7B-Instruct is a strong open-weight model but not the strongest available. We expect the set-size ranking to be largely model-independent, but absolute admissibility scales with model strength.
 2. **Two QA datasets**: TriviaQA and SQuAD test the closed-form QA regime where bidirectional NLI works well. Open-ended generation (summarization, dialogue, code) is future work — the equivalence relation itself becomes harder to formalize.
 3. **No human evaluation of cluster fidelity**: we report cluster counts and ablations, but the partition itself is judged only by NLI agreement, not by human labels.
 4. **K = 10 samples**: covers the regime where most CP-for-LLM papers operate, but very high-entropy queries may need K > 10 for the admissibility event to fire reliably.
@@ -210,7 +210,7 @@ If you use SemCP, please cite the paper:
 
 ## License
 
-[MIT](LICENSE). See `LICENSE` for terms. Datasets and pretrained models retain their original licenses (Apache 2.0 for Qwen3, Wikipedia/CC for TriviaQA, CC-BY-SA for SQuAD).
+[MIT](LICENSE). See `LICENSE` for terms. Datasets and pretrained models retain their original licenses (Apache 2.0 for Qwen, Wikipedia/CC for TriviaQA, CC-BY-SA for SQuAD).
 
 ---
 
