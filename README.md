@@ -83,10 +83,10 @@ semcp-conformal-prediction/
 ### 1. Hardware
 
 Any single GPU with ≥ 24 GB VRAM. Tested on:
-- NVIDIA RTX 6000 Ada Generation (48 GB) — community RunPod, ~$0.74/hr
-- NVIDIA H100 80 GB HBM3 (faster, more expensive)
+- NVIDIA RTX 6000 Ada Generation (48 GB)
+- NVIDIA H100 80 GB HBM3
 
-Model weights downloaded at runtime (~16 GB for Qwen2.5-7B-Instruct).
+Model weights (Qwen2.5-7B-Instruct) are downloaded at runtime.
 
 ### 2. Environment
 
@@ -117,16 +117,9 @@ chmod +x run_full.sh
 ./run_full.sh
 ```
 
-Wall clock on RTX 6000 Ada (Qwen2.5-7B-Instruct, $N=500$, $K=10$, both datasets):
-
-| Stage | TriviaQA | SQuAD |
-|---|---|---|
-| Sampling (vLLM) | ~5 min | ~6 min |
-| Teacher-forced NLL | ~10 min | ~12 min |
-| NLI partition + embeddings | ~7 min | ~8 min |
-| Methods × 3 seeds | ~2 min | ~2 min |
-
-**Total ≈ 50 min.**
+Runtime scales with hardware. Tested on RTX 6000 Ada (Qwen2.5-7B-Instruct, $N=500$, $K=10$, both datasets):
+the pipeline includes sampling, teacher-forced scoring, NLI partitioning, embeddings computation, and method calibration.
+Consult logs (`logs/`) for wall-clock measurements on your hardware.
 
 Artifacts land in `data/` (raw samples + pools), `results/<dataset>/` (summaries + raw predictions), and `logs/`.
 
