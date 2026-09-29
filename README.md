@@ -178,7 +178,7 @@ The reviewer-flagged gap in the v1 manuscript (theorem promised marginal coverag
 ## Honest limitations
 
 1. **Single open model**: Qwen2.5-7B-Instruct is a strong open-weight model but not the strongest available. We expect the set-size ranking to be largely model-independent, but absolute admissibility scales with model strength.
-2. **Two QA datasets**: TriviaQA and SQuAD test the closed-form QA regime where bidirectional NLI works well. Open-ended generation (summarization, dialogue, code) is future work — the equivalence relation itself becomes harder to formalize.
+2. **Two QA datasets**: TriviaQA and SQuAD test the closed-form QA regime where bidirectional NLI works well. Open-ended generation (summarization, dialogue, code) is future work - the equivalence relation itself becomes harder to formalize.
 3. **No human evaluation of cluster fidelity**: we report cluster counts and ablations, but the partition itself is judged only by NLI agreement, not by human labels.
 4. **K = 10 samples**: covers the regime where most CP-for-LLM papers operate, but very high-entropy queries may need K > 10 for the admissibility event to fire reliably.
 
